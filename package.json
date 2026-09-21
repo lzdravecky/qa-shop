@@ -1,0 +1,12 @@
+{
+  "name": "qa-shop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local system-under-test for the Playwright AI QA Lab",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

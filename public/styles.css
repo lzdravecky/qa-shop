@@ -1,0 +1,26 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, sans-serif; background: #f6f7f9; color: #17191c; }
+header { display:flex; justify-content:space-between; align-items:center; padding:18px max(24px, calc((100% - 1050px)/2)); background:white; border-bottom:1px solid #ddd; }
+.brand { font-size:22px; font-weight:800; text-decoration:none; color:inherit; }
+nav { display:flex; gap:20px; align-items:center; }
+nav a { color:inherit; }
+button { cursor:pointer; border:0; border-radius:9px; padding:10px 14px; font-weight:700; }
+main { max-width:1050px; margin:auto; padding:42px 24px 80px; }
+.hero { margin-bottom:28px; }
+.hero h1 { font-size:42px; margin:5px 0; }
+.eyebrow { font-size:12px; font-weight:800; letter-spacing:.12em; }
+.tools { background:white; padding:18px; border-radius:14px; display:grid; gap:8px; margin-bottom:16px; }
+input { padding:11px 12px; border:1px solid #bbb; border-radius:8px; font:inherit; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:18px; }
+.card { background:white; border-radius:14px; padding:18px; box-shadow:0 5px 18px rgba(0,0,0,.05); }
+.product-art { height:110px; display:grid; place-items:center; border-radius:10px; background:#e9ebef; font-size:48px; font-weight:900; }
+.card button, #checkout, form button { width:100%; background:#17191c; color:white; }
+.panel, .checkout, .success { margin-top:24px; background:white; padding:22px; border-radius:14px; }
+.panel-head { display:flex; justify-content:space-between; align-items:center; }
+.panel-head h2 { margin:0; }
+#cart-items p { display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding-bottom:10px; }
+.total { text-align:right; font-size:20px; }
+.checkout form { display:grid; gap:9px; max-width:480px; }
+.error { color:#9b1c1c; font-weight:700; }
+.success { border:2px solid #17191c; }
+.hidden { display:none; }

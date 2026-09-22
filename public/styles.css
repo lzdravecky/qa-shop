@@ -24,3 +24,10 @@ input { padding:11px 12px; border:1px solid #bbb; border-radius:8px; font:inheri
 .error { color:#9b1c1c; font-weight:700; }
 .success { border:2px solid #17191c; }
 .hidden { display:none; }
+
+.promo { margin:18px 0; display:grid; gap:8px; }
+.promo-row { display:grid; grid-template-columns:1fr auto; gap:8px; }
+.promo-row button { background:#17191c; color:white; }
+button:disabled { cursor:not-allowed; opacity:.45; }
+.totals { border-top:1px solid #eee; margin-top:16px; padding-top:8px; }
+.totals p { display:flex; justify-content:space-between; margin:8px 0; }

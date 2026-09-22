@@ -23,6 +23,7 @@ const products = [
 ]
 
 let cart = []
+let appliedPromoCode = null
 
 const orders = []
 let nextOrderId = 1
@@ -59,16 +60,23 @@ function readJsonBody(req) {
   })
 }
 
-function calculateCartTotal() {
+function calculateCartSubtotal() {
   return cart.reduce((total, item) => {
     return total + item.price * item.quantity
   }, 0)
 }
 
 function getCartResponse() {
+  const subtotal = calculateCartSubtotal()
+  const discount = appliedPromoCode === 'SAVE10' ? subtotal * 0.1 : 0
+  const total = subtotal - discount
+
   return {
     items: cart,
-    total: calculateCartTotal()
+    promoCode: appliedPromoCode,
+    subtotal,
+    discount,
+    total
   }
 }
 
@@ -202,11 +210,45 @@ http.createServer(async (req, res) => {
     return sendJson(res, 200, getCartResponse())
   }
 
+  // POST /api/cart/promo
+  if (req.method === 'POST' && pathname === '/api/cart/promo') {
+    try {
+      const body = await readJsonBody(req)
+      const promoCode = typeof body.code === 'string' ? body.code.toUpperCase() : ''
+
+      if (!cart.length) {
+        return sendJson(res, 400, {
+          error: 'Cart must contain at least one item'
+        })
+      }
+
+      if (appliedPromoCode) {
+        return sendJson(res, 409, {
+          error: 'A promo code has already been applied'
+        })
+      }
+
+      if (promoCode !== 'SAVE10') {
+        return sendJson(res, 400, {
+          error: 'Invalid promo code'
+        })
+      }
+
+      appliedPromoCode = 'SAVE10'
+      return sendJson(res, 200, getCartResponse())
+    } catch {
+      return sendJson(res, 400, {
+        error: 'Invalid JSON'
+      })
+    }
+  }
+
   // DELETE /api/cart
   //
   // Utility endpoint useful for test isolation.
   if (req.method === 'DELETE' && pathname === '/api/cart') {
     cart = []
+    appliedPromoCode = null
 
     return sendJson(res, 200, getCartResponse())
   }
@@ -289,9 +331,12 @@ http.createServer(async (req, res) => {
         })
       }
 
-      const total = orderItems.reduce((sum, item) => {
+      const subtotal = orderItems.reduce((sum, item) => {
         return sum + item.price * item.quantity
       }, 0)
+      const promoCode = appliedPromoCode
+      const discount = promoCode === 'SAVE10' ? subtotal * 0.1 : 0
+      const total = subtotal - discount
 
       const order = {
         id: nextOrderId++,
@@ -300,6 +345,9 @@ http.createServer(async (req, res) => {
           email: customer.email.trim()
         },
         items: orderItems,
+        promoCode,
+        subtotal,
+        discount,
         total,
         status: 'confirmed',
         createdAt: new Date().toISOString()

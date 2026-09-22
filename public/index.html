@@ -36,6 +36,18 @@
         <button id="close-cart" type="button" aria-label="Close cart">×</button>
       </div>
       <div id="cart-items"></div>
+      <div id="promo-controls" class="promo hidden">
+        <label for="promo-code">Promo code</label>
+        <div class="promo-row">
+          <input id="promo-code" name="promoCode" autocomplete="off">
+          <button id="apply-promo" type="button" disabled>Apply</button>
+        </div>
+        <p id="promo-error" role="alert" class="error"></p>
+      </div>
+      <div id="cart-totals" class="totals hidden">
+        <p>Subtotal: <strong id="cart-subtotal">€0.00</strong></p>
+        <p>Discount: <strong id="cart-discount">€0.00</strong></p>
+      </div>
       <p class="total">Total: <strong id="cart-total">€0.00</strong></p>
       <button id="checkout" type="button">Checkout</button>
     </section>

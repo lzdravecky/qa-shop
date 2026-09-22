@@ -1,6 +1,9 @@
 let products = []
 let cart = {
   items: [],
+  promoCode: null,
+  subtotal: 0,
+  discount: 0,
   total: 0
 }
 
@@ -11,6 +14,13 @@ const cartCount = document.querySelector('#cart-count')
 const cartPanel = document.querySelector('#cart-panel')
 const cartItems = document.querySelector('#cart-items')
 const cartTotal = document.querySelector('#cart-total')
+const cartSubtotal = document.querySelector('#cart-subtotal')
+const cartDiscount = document.querySelector('#cart-discount')
+const cartTotals = document.querySelector('#cart-totals')
+const promoControls = document.querySelector('#promo-controls')
+const promoCode = document.querySelector('#promo-code')
+const applyPromo = document.querySelector('#apply-promo')
+const promoError = document.querySelector('#promo-error')
 const checkoutPanel = document.querySelector('#checkout-panel')
 const checkoutError = document.querySelector('#checkout-error')
 const success = document.querySelector('#success')
@@ -86,6 +96,13 @@ function renderCart() {
         .join('')
     : '<p>Your cart is empty.</p>'
 
+  promoControls.classList.toggle('hidden', !cart.items.length)
+  cartTotals.classList.toggle('hidden', !cart.promoCode)
+
+  promoCode.disabled = Boolean(cart.promoCode)
+  applyPromo.disabled = Boolean(cart.promoCode) || !promoCode.value
+  cartSubtotal.textContent = money(cart.subtotal)
+  cartDiscount.textContent = money(cart.discount)
   cartTotal.textContent = money(cart.total)
 }
 
@@ -127,6 +144,27 @@ search.addEventListener('input', () => {
       product.name.toLowerCase().includes(query)
     )
   )
+})
+
+promoCode.addEventListener('input', () => {
+  applyPromo.disabled = Boolean(cart.promoCode) || !promoCode.value
+})
+
+applyPromo.addEventListener('click', async () => {
+  promoError.textContent = ''
+
+  try {
+    cart = await apiRequest('/api/cart/promo', {
+      method: 'POST',
+      body: JSON.stringify({
+        code: promoCode.value
+      })
+    })
+
+    renderCart()
+  } catch (error) {
+    promoError.textContent = error.message
+  }
 })
 
 document.querySelector('#cart-button').addEventListener('click', async () => {

@@ -237,7 +237,7 @@ http.createServer(async (req, res) => {
 
     cartSession.cart = cartSession.cart.filter(item => item.productId !== productId)
 
-    return sendJson(res, 200, getCartResponse())
+    return sendJson(res, 200, getCartResponse(cartSession.cart, cartSession.appliedPromoCode))
   }
 
   // POST /api/cart/promo
@@ -265,7 +265,7 @@ http.createServer(async (req, res) => {
       }
 
       cartSession.appliedPromoCode = 'SAVE10'
-      return sendJson(res, 200, getCartResponse())
+      return sendJson(res, 200, getCartResponse(cartSession.cart, cartSession.appliedPromoCode))
     } catch {
       return sendJson(res, 400, {
         error: 'Invalid JSON'
@@ -280,7 +280,7 @@ http.createServer(async (req, res) => {
     cartSession.cart = []
     cartSession.appliedPromoCode = null
 
-    return sendJson(res, 200, getCartResponse())
+    return sendJson(res, 200, getCartResponse(cartSession.cart, cartSession.appliedPromoCode))
   }
 
   // ---------------------------------------------------------------------------

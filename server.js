@@ -1,6 +1,7 @@
 const http = require('http')
 const fs = require('fs')
 const path = require('path')
+const { randomUUID } = require('crypto')
 
 const port = process.env.PORT || 3000
 const publicDir = path.join(__dirname, 'public')
@@ -22,8 +23,7 @@ const products = [
   { id: 4, name: '27-inch Monitor', price: 249.00 }
 ]
 
-let cart = []
-let appliedPromoCode = null
+const cartSessions = new Map()
 
 const orders = []
 let nextOrderId = 1
@@ -60,14 +60,14 @@ function readJsonBody(req) {
   })
 }
 
-function calculateCartSubtotal() {
+function calculateCartSubtotal(cart) {
   return cart.reduce((total, item) => {
     return total + item.price * item.quantity
   }, 0)
 }
 
-function getCartResponse() {
-  const subtotal = calculateCartSubtotal()
+function getCartResponse(cart, appliedPromoCode) {
+  const subtotal = calculateCartSubtotal(cart)
   const discount = appliedPromoCode === 'SAVE10' ? subtotal * 0.1 : 0
   const total = subtotal - discount
 
@@ -80,11 +80,41 @@ function getCartResponse() {
   }
 }
 
+function getCartSession(req, res) {
+  const cookies = Object.fromEntries(
+    (req.headers.cookie || '')
+      .split(';')
+      .map(cookie => cookie.trim())
+      .filter(Boolean)
+      .map(cookie => {
+        const separator = cookie.indexOf('=')
+        return [cookie.slice(0, separator), cookie.slice(separator + 1)]
+      })
+  )
+
+  let sessionId = cookies['qa-shop-session']
+
+  if (!sessionId) {
+    sessionId = randomUUID()
+    res.setHeader('Set-Cookie', `qa-shop-session=${sessionId}; Path=/; HttpOnly; SameSite=Lax`)
+  }
+
+  if (!cartSessions.has(sessionId)) {
+    cartSessions.set(sessionId, {
+      cart: [],
+      appliedPromoCode: null
+    })
+  }
+
+  return cartSessions.get(sessionId)
+}
+
 // -----------------------------------------------------------------------------
 // Server
 // -----------------------------------------------------------------------------
 
 http.createServer(async (req, res) => {
+  const cartSession = getCartSession(req, res)
   const url = new URL(req.url, `http://${req.headers.host}`)
   const pathname = url.pathname
 
@@ -124,7 +154,7 @@ http.createServer(async (req, res) => {
 
   // GET /api/cart
   if (req.method === 'GET' && pathname === '/api/cart') {
-    return sendJson(res, 200, getCartResponse())
+    return sendJson(res, 200, getCartResponse(cartSession.cart, cartSession.appliedPromoCode))
   }
 
   // POST /api/cart/items
@@ -163,12 +193,12 @@ http.createServer(async (req, res) => {
         })
       }
 
-      const existingItem = cart.find(item => item.productId === productId)
+      const existingItem = cartSession.cart.find(item => item.productId === productId)
 
       if (existingItem) {
         existingItem.quantity += quantity
       } else {
-        cart.push({
+        cartSession.cart.push({
           productId: product.id,
           name: product.name,
           price: product.price,
@@ -176,7 +206,7 @@ http.createServer(async (req, res) => {
         })
       }
 
-      return sendJson(res, 201, getCartResponse())
+      return sendJson(res, 201, getCartResponse(cartSession.cart, cartSession.appliedPromoCode))
     } catch {
       return sendJson(res, 400, {
         error: 'Invalid JSON'
@@ -197,7 +227,7 @@ http.createServer(async (req, res) => {
       })
     }
 
-    const itemExists = cart.some(item => item.productId === productId)
+    const itemExists = cartSession.cart.some(item => item.productId === productId)
 
     if (!itemExists) {
       return sendJson(res, 404, {
@@ -205,9 +235,9 @@ http.createServer(async (req, res) => {
       })
     }
 
-    cart = cart.filter(item => item.productId !== productId)
+    cartSession.cart = cartSession.cart.filter(item => item.productId !== productId)
 
-    return sendJson(res, 200, getCartResponse())
+    return sendJson(res, 200, getCartResponse(cartSession.cart, cartSession.appliedPromoCode))
   }
 
   // POST /api/cart/promo
@@ -216,13 +246,13 @@ http.createServer(async (req, res) => {
       const body = await readJsonBody(req)
       const promoCode = typeof body.code === 'string' ? body.code.toUpperCase() : ''
 
-      if (!cart.length) {
+      if (!cartSession.cart.length) {
         return sendJson(res, 400, {
           error: 'Cart must contain at least one item'
         })
       }
 
-      if (appliedPromoCode) {
+      if (cartSession.appliedPromoCode) {
         return sendJson(res, 409, {
           error: 'A promo code has already been applied'
         })
@@ -234,8 +264,8 @@ http.createServer(async (req, res) => {
         })
       }
 
-      appliedPromoCode = 'SAVE10'
-      return sendJson(res, 200, getCartResponse())
+      cartSession.appliedPromoCode = 'SAVE10'
+      return sendJson(res, 200, getCartResponse(cartSession.cart, cartSession.appliedPromoCode))
     } catch {
       return sendJson(res, 400, {
         error: 'Invalid JSON'
@@ -247,10 +277,10 @@ http.createServer(async (req, res) => {
   //
   // Utility endpoint useful for test isolation.
   if (req.method === 'DELETE' && pathname === '/api/cart') {
-    cart = []
-    appliedPromoCode = null
+    cartSession.cart = []
+    cartSession.appliedPromoCode = null
 
-    return sendJson(res, 200, getCartResponse())
+    return sendJson(res, 200, getCartResponse(cartSession.cart, cartSession.appliedPromoCode))
   }
 
   // ---------------------------------------------------------------------------
@@ -334,7 +364,7 @@ http.createServer(async (req, res) => {
       const subtotal = orderItems.reduce((sum, item) => {
         return sum + item.price * item.quantity
       }, 0)
-      const promoCode = appliedPromoCode
+      const promoCode = cartSession.appliedPromoCode
       const discount = promoCode === 'SAVE10' ? subtotal * 0.1 : 0
       const total = subtotal - discount
 
